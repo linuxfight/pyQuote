@@ -5,7 +5,7 @@ import requests, uuid
 from aiogram.types.message import ContentType
 
 def GetToken():
-    return str(open("token.txt").read())
+    return str(open("token.txt").read()).strip()
 
 bot = Bot(token=GetToken())
 dp = Dispatcher(bot)
