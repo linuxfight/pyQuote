@@ -116,7 +116,6 @@ def GetQuote(quoteId):
 
 @dp.callback_query_handler()
 async def OnButtonClick(callbackQuery: types.CallbackQuery):
-    print(callbackQuery)
     data = callbackQuery.data.split(':')
     userId = callbackQuery.from_user.id
     quoteId = data[0]
