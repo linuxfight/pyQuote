@@ -1,5 +1,5 @@
 aiogram
 requests
 uuid
-json
+simplejson
 os
