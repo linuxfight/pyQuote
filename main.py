@@ -5,13 +5,13 @@ import requests, uuid
 from aiogram.types.message import ContentType
 
 def GetToken():
-    return open("token.txt").read()
+    return str(open("token.txt").read()).strip()
 
 bot = Bot(token=GetToken())
 dp = Dispatcher(bot)
 storage = Storage().Load()
 
-def ConvertMessage(message : types.Message, quote):
+def ConvertMessage(message : types.Message):
     result = {
         'from': {
             'id': message.from_user.id,
@@ -23,7 +23,6 @@ def ConvertMessage(message : types.Message, quote):
         'reply_to_message': None,
         'media': None
     }
-    quote['text'] = message.text
     if message.reply_to_message:
         result['reply_to_message'] = ConvertMessage(message.reply_to_message)
     if message.photo:
@@ -32,15 +31,24 @@ def ConvertMessage(message : types.Message, quote):
             'type': "photo"
         }
         if message.caption:
-            quote['text'] = message.caption
             result['text'] = message.caption
     if message.sticker:
-        quote['text'] = message.sticker.emoji
         result['media'] = {
             'file_id': message.sticker.file_id,
             'type': "sticker"
         }
     return result
+
+def GetText(message: types.Message):
+    msg = message.text
+
+    if message.caption:
+        msg = message.caption
+
+    if message.sticker:
+        msg = message.sticker.emoji
+
+    return msg
 
 def GenerateKeyboard(quote):
         buttons = InlineKeyboardMarkup()
@@ -78,16 +86,16 @@ def GetReaction(userId, quote):
         return "none"
 
 async def CreateQuote(message : types.Message):
+    requestObject = {
+        'bot_token': GetToken(),
+        'messages': [ConvertMessage(message)]
+    }
     quote = {
         'Id': storage['nextQuoteId'],
-        'text': message.text,
+        'text': GetText(message),
         'fileId': "",
         'likes': [],
         'dislikes': []
-    }
-    requestObject = {
-        'bot_token': GetToken(),
-        'messages': [ConvertMessage(message, quote)]
     }
     response = requests.post(url="https://quotes.vanutp.dev/generate", json=requestObject)
     storage['nextQuoteId'] += 1
@@ -116,7 +124,6 @@ def GetQuote(quoteId):
 
 @dp.callback_query_handler()
 async def OnButtonClick(callbackQuery: types.CallbackQuery):
-    print(callbackQuery)
     data = callbackQuery.data.split(':')
     userId = callbackQuery.from_user.id
     quoteId = data[0]
