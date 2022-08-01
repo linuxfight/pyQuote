@@ -1,15 +1,34 @@
-from Classes.Storage import Storage
+from os.path import exists
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InlineQueryResultCachedSticker
-import requests, uuid
+import requests, uuid, simplejson
 from aiogram.types.message import ContentType
 
 def GetToken():
     return str(open("token.txt").read()).strip()
 
+def Load():
+        if exists("save.json"):
+            data = open("save.json", 'r').read()
+            return simplejson.loads(data)
+        else:
+            data = {
+                'Quotes': [],
+                'nextQuoteId': 0
+            }
+            open("save.json", 'w').write(simplejson.dumps(data))
+            return Load()
+
+def Save(self):
+    data = {
+        'Quotes': self['Quotes'],
+        'nextQuoteId': self['nextQuoteId']
+    }
+    open("save.json", 'w').write(simplejson.dumps(data))
+
 bot = Bot(token=GetToken())
 dp = Dispatcher(bot)
-storage = Storage().Load()
+storage = Load()
 
 def ConvertMessage(message : types.Message):
     result = {
@@ -103,7 +122,7 @@ async def CreateQuote(message : types.Message):
     sent_message = await bot.send_sticker(chat_id=message.chat.id, sticker=response.content,
                                           reply_to_message_id=message.message_id, reply_markup=GenerateKeyboard(quote))
     quote['fileId'] = sent_message.sticker.file_id
-    Storage.Save(storage)
+    Save(storage)
 
 @dp.message_handler(content_types=ContentType.TEXT)
 async def GenerateMessageQuote(message):
@@ -155,7 +174,7 @@ async def OnButtonClick(callbackQuery: types.CallbackQuery):
         reply_markup=GenerateKeyboard(quote)
     )
 
-    Storage.Save(storage)
+    Save(storage)
 
 @dp.inline_handler()
 async def OnInlineQuery(inlineQuery: types.InlineQuery):
