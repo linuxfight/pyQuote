@@ -168,11 +168,17 @@ async def OnButtonClick(callbackQuery: types.CallbackQuery):
             text="Вы поставили дизлайк"
         )
 
-    await bot.edit_message_reply_markup(
-        chat_id=callbackQuery.message.chat.id,
-        message_id=callbackQuery.message.message_id,
-        reply_markup=GenerateKeyboard(quote)
-    )
+    if callbackQuery.message:
+        await bot.edit_message_reply_markup(
+            chat_id=callbackQuery.message.chat.id,
+            message_id=callbackQuery.message.message_id,
+            reply_markup=GenerateKeyboard(quote)
+        )
+    else:
+        await bot.edit_message_reply_markup(
+            inline_message_id=callbackQuery.inline_message_id,
+            reply_markup=GenerateKeyboard(quote)
+        )
 
     Save(storage)
 
@@ -188,7 +194,7 @@ async def OnInlineQuery(inlineQuery: types.InlineQuery):
 
     for quote in quotes:
         randomId = str(uuid.uuid4())
-        answers.append(InlineQueryResultCachedSticker(id=randomId, sticker_file_id=quote['fileId']))
+        answers.append(InlineQueryResultCachedSticker(id=randomId, sticker_file_id=quote['fileId'], reply_markup=GenerateKeyboard(quote)))
 
     await bot.answer_inline_query(
         inline_query_id=inlineQuery.id,
