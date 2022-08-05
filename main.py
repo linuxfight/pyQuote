@@ -70,9 +70,10 @@ def GetText(message: types.Message):
     return msg
 
 def GenerateKeyboard(quote):
-        buttons = InlineKeyboardMarkup()
-        buttons.add(InlineKeyboardButton(text="👍" + str(len(quote['likes'])), callback_data=str(quote['Id']) + ":like"))
-        buttons.add(InlineKeyboardButton(text="👎" + str(len(quote['dislikes'])), callback_data=str(quote['Id']) + ":dislike"))
+        buttons = InlineKeyboardMarkup(row_width=2)
+        buttons.insert(InlineKeyboardButton(text="👍" + str(len(quote['likes'])), callback_data=str(quote['Id']) + ":like"))
+        buttons.insert(InlineKeyboardButton(text="👎" + str(len(quote['dislikes'])), callback_data=str(quote['Id']) + ":dislike"))
+
         return buttons
 
 def SetLike(userId, quote):
