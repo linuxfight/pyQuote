@@ -120,8 +120,7 @@ async def CreateQuote(message : types.Message):
     response = requests.post(url="https://quotes.vanutp.dev/generate", json=requestObject)
     storage['nextQuoteId'] += 1
     storage['Quotes'].append(quote)
-    sent_message = await bot.send_sticker(chat_id=message.chat.id, sticker=response.content,
-                                          reply_to_message_id=message.message_id, reply_markup=GenerateKeyboard(quote))
+    sent_message = await bot.send_sticker(chat_id=message.chat.id, sticker=response.content, reply_to_message_id=message.message_id, reply_markup=GenerateKeyboard(quote))
     quote['fileId'] = sent_message.sticker.file_id
     Save(storage)
 
