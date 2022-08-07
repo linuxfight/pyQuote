@@ -2,4 +2,3 @@ aiogram
 requests
 uuid
 simplejson
-os
