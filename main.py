@@ -42,6 +42,18 @@ def ConvertMessage(message : types.Message):
         'reply_to_message': None,
         'media': None
     }
+    if message.is_forward():
+        result = {
+            'from': {
+                'id': message.forward_from.id,
+                'first_name': message.forward_from.first_name,
+                'last_name': message.forward_from.last_name,
+                'username': message.forward_from.username
+            },
+            'text': message.text,
+            'reply_to_message': None,
+            'media': None
+        }
     if message.reply_to_message:
         result['reply_to_message'] = ConvertMessage(message.reply_to_message)
     if message.photo:
