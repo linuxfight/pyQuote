@@ -55,7 +55,9 @@ def ConvertMessage(message : types.Message):
             'media': None
         }
     if message.reply_to_message:
-        result['reply_to_message'] = ConvertMessage(message.reply_to_message)
+        reply = message.reply_to_message
+        reply.text = GetText(message.reply_to_message, True)
+        result['reply_to_message'] = ConvertMessage(reply)
     if message.photo:
         result['media'] = {
             'file_id': message.photo[0].file_id,
@@ -70,14 +72,17 @@ def ConvertMessage(message : types.Message):
         }
     return result
 
-def GetText(message: types.Message):
+def GetText(message: types.Message, isReply: bool):
     msg = message.text
 
     if message.caption:
         msg = message.caption
 
     if message.sticker:
-        msg = message.sticker.emoji
+        if not isReply:
+            msg = message.sticker.emoji
+        else:
+            msg = "Стикер " + message.sticker.emoji
 
     return msg
 
@@ -124,7 +129,7 @@ async def CreateQuote(message : types.Message):
     }
     quote = {
         'Id': storage['nextQuoteId'],
-        'text': GetText(message),
+        'text': GetText(message, False),
         'fileId': "",
         'likes': [],
         'dislikes': []
