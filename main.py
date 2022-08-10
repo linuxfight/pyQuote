@@ -40,7 +40,7 @@ def ConvertMessage(message : types.Message):
         },
         'text': message.text,
         'reply_to_message': None,
-        'media': None
+        'media': GetMedia(message)
     }
     if message.is_forward():
         result = {
@@ -52,25 +52,29 @@ def ConvertMessage(message : types.Message):
             },
             'text': message.text,
             'reply_to_message': None,
-            'media': None
+            'media': GetMedia(message)
         }
+    if message.caption:
+        result['text'] = message.caption
     if message.reply_to_message:
         reply = message.reply_to_message
         reply.text = GetText(message.reply_to_message, True)
         result['reply_to_message'] = ConvertMessage(reply)
+    return result
+
+def GetMedia(message: types.Message):
+    media = None
     if message.photo:
-        result['media'] = {
+        media = {
             'file_id': message.photo[0].file_id,
             'type': "photo"
         }
-        if message.caption:
-            result['text'] = message.caption
     if message.sticker:
-        result['media'] = {
+        media = {
             'file_id': message.sticker.file_id,
             'type': "sticker"
         }
-    return result
+    return media
 
 def GetText(message: types.Message, isReply: bool):
     msg = message.text
@@ -79,10 +83,13 @@ def GetText(message: types.Message, isReply: bool):
         msg = message.caption
 
     if message.sticker:
-        if not isReply:
-            msg = message.sticker.emoji
+        if message.sticker.emoji:
+            if not isReply:
+                msg = message.sticker.emoji
+            else:
+                msg = "Стикер " + message.sticker.emoji
         else:
-            msg = "Стикер " + message.sticker.emoji
+            msg = "Стикер"
 
     return msg
 
