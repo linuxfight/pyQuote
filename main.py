@@ -54,8 +54,6 @@ def ConvertMessage(message : types.Message):
             'reply_to_message': None,
             'media': GetMedia(message)
         }
-    if message.caption:
-        result['text'] = message.caption
     if message.reply_to_message:
         reply = message.reply_to_message
         reply.text = GetText(message.reply_to_message, True)
@@ -79,15 +77,21 @@ def GetMedia(message: types.Message):
 def GetText(message: types.Message, isReply: bool):
     msg = message.text
 
-    if message.caption:
-        msg = message.caption
+    if message.photo:
+        if message.caption:
+            if isReply:
+                msg = "🖼️ " + message.caption
+            else:
+                msg = message.caption
+        else:
+            msg = "🖼️"
 
     if message.sticker:
         if message.sticker.emoji:
-            if not isReply:
-                msg = message.sticker.emoji
-            else:
+            if isReply:
                 msg = "Стикер " + message.sticker.emoji
+            else:
+                msg = message.sticker.emoji
         else:
             msg = "Стикер"
 
