@@ -30,7 +30,9 @@ bot = Bot(token=GetToken())
 dp = Dispatcher(bot)
 storage = Load()
 
-def ConvertMessage(message : types.Message):
+def ConvertMessage(message : types.Message, value: bool):
+    if not message.sticker and value is False:
+        message.text = GetText(message, value)
     result = {
         'from': {
             'id': message.from_user.id,
@@ -43,21 +45,16 @@ def ConvertMessage(message : types.Message):
         'media': GetMedia(message)
     }
     if message.is_forward():
-        result = {
-            'from': {
+        result['from'] = {
                 'id': message.forward_from.id,
                 'first_name': message.forward_from.first_name,
                 'last_name': message.forward_from.last_name,
                 'username': message.forward_from.username
-            },
-            'text': message.text,
-            'reply_to_message': None,
-            'media': GetMedia(message)
         }
     if message.reply_to_message:
         reply = message.reply_to_message
         reply.text = GetText(message.reply_to_message, True)
-        result['reply_to_message'] = ConvertMessage(reply)
+        result['reply_to_message'] = ConvertMessage(reply, True)
     return result
 
 def GetMedia(message: types.Message):
@@ -136,7 +133,7 @@ def GetReaction(userId, quote):
 async def CreateQuote(message : types.Message):
     requestObject = {
         'bot_token': GetToken(),
-        'messages': [ConvertMessage(message)]
+        'messages': [ConvertMessage(message, False)]
     }
     quote = {
         'Id': storage['nextQuoteId'],
