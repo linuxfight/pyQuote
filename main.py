@@ -2,10 +2,23 @@ from os.path import exists
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InlineQueryResultCachedSticker
 import requests, uuid, json
-from aiogram.types.message import ContentType, ContentTypes
+from aiogram.types.message import ContentTypes
 
 def GetToken():
     return str(open("token.txt").read()).strip()
+
+def Config(key):
+    if exists("config.txt"):
+        data = open("config.txt", 'r').read()
+        return json.loads(data[key])
+    else:
+        data = {
+            'emoji_library': 'twemoji',
+            'token': 'Вставьте токен бота от @BotFather сюда'
+        }
+        print("Отредактируйте файл config.txt и вставьте туда токен из @BotFather (обязательно) и настройте библиотеку эмодзи (необязательно, т.к. по умолчанию используется twemoji)")
+        open("config.txt", 'w').write(json.dumps(data))
+        quit(0)
 
 def Load():
         if exists("save.json"):
@@ -26,9 +39,11 @@ def Save(self):
     }
     open("save.json", 'w').write(json.dumps(data))
 
-bot = Bot(token=GetToken())
+bot = Bot(token=Config('token'))
 dp = Dispatcher(bot)
 storage = Load()
+emoji_library = Config('emoji_library')
+backgroundcolor = '#1b1429'
 
 def ConvertMessage(message : types.Message, value: bool):
     if not message.sticker and value is False:
@@ -133,6 +148,7 @@ def GetReaction(userId, quote):
 async def CreateQuote(message : types.Message):
     requestObject = {
         'bot_token': GetToken(),
+        'emoji_library': emoji_library,
         'messages': [ConvertMessage(message, False)]
     }
     quote = {
