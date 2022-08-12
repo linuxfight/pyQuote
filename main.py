@@ -2,7 +2,7 @@ from os.path import exists
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InlineQueryResultCachedSticker
 import requests, uuid, json
-from aiogram.types.message import ContentType
+from aiogram.types.message import ContentType, ContentTypes
 
 def GetToken():
     return str(open("token.txt").read()).strip()
@@ -149,7 +149,7 @@ async def CreateQuote(message : types.Message):
     quote['fileId'] = sent_message.sticker.file_id
     Save(storage)
 
-@dp.message_handler(content_types=ContentType.TEXT and ContentType.PHOTO and ContentType.STICKER)
+@dp.message_handler(content_types=ContentTypes.TEXT | ContentTypes.PHOTO | ContentTypes.STICKER)
 async def GenerateQuote(message: types.message):
     await CreateQuote(message)
 
