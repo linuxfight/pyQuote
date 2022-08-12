@@ -14,6 +14,7 @@ def Config(key):
     else:
         data = {
             'emoji_library': 'twemoji',
+            'background_color': '#1b1429',
             'token': 'TOKEN'
         }
         open("config.txt", 'w').write(json.dumps(data))
@@ -42,7 +43,7 @@ bot = Bot(token=Config('token'))
 dp = Dispatcher(bot)
 storage = Load()
 emoji_library = Config('emoji_library')
-backgroundcolor = '#1b1429'
+background_color = Config('background_color')
 
 def ConvertMessage(message : types.Message, value: bool):
     if not message.sticker and value is False:
@@ -148,6 +149,7 @@ async def CreateQuote(message : types.Message):
     requestObject = {
         'bot_token': GetToken(),
         'emoji_library': emoji_library,
+        'background_color': background_color,
         'messages': [ConvertMessage(message, False)]
     }
     quote = {
