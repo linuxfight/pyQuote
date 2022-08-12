@@ -1,7 +1,7 @@
 from os.path import exists
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InlineQueryResultCachedSticker
-import requests, uuid, simplejson
+import requests, uuid, json
 from aiogram.types.message import ContentType
 
 def GetToken():
@@ -10,13 +10,13 @@ def GetToken():
 def Load():
         if exists("save.json"):
             data = open("save.json", 'r').read()
-            return simplejson.loads(data)
+            return json.loads(data)
         else:
             data = {
                 'Quotes': [],
                 'nextQuoteId': 0
             }
-            open("save.json", 'w').write(simplejson.dumps(data))
+            open("save.json", 'w').write(json.dumps(data))
             return Load()
 
 def Save(self):
@@ -24,7 +24,7 @@ def Save(self):
         'Quotes': self['Quotes'],
         'nextQuoteId': self['nextQuoteId']
     }
-    open("save.json", 'w').write(simplejson.dumps(data))
+    open("save.json", 'w').write(json.dumps(data))
 
 bot = Bot(token=GetToken())
 dp = Dispatcher(bot)
@@ -149,17 +149,9 @@ async def CreateQuote(message : types.Message):
     quote['fileId'] = sent_message.sticker.file_id
     Save(storage)
 
-@dp.message_handler(content_types=ContentType.TEXT)
-async def GenerateMessageQuote(message):
+@dp.message_handler(content_types=ContentType.TEXT | ContentType.PHOTO | ContentType.STICKER)
+async def GenerateQuote(message):
     await CreateQuote(message)
-
-@dp.message_handler(content_types=ContentType.STICKER)
-async def GenerateStickerQuote(sticker):
-    await CreateQuote(sticker)
-
-@dp.message_handler(content_types=ContentType.PHOTO)
-async def GeneratePhotoQuote(photo):
-    await CreateQuote(photo)
 
 def GetQuote(quoteId):
     for quoteFor in storage['Quotes']:
