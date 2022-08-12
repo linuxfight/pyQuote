@@ -9,14 +9,13 @@ def GetToken():
 
 def Config(key):
     if exists("config.txt"):
-        data = open("config.txt", 'r').read()
-        return json.loads(data[key])
+        data = json.loads(open("config.txt", 'r').read())
+        return str(data[key])
     else:
         data = {
             'emoji_library': 'twemoji',
-            'token': 'Вставьте токен бота от @BotFather сюда'
+            'token': 'TOKEN'
         }
-        print("Отредактируйте файл config.txt и вставьте туда токен из @BotFather (обязательно) и настройте библиотеку эмодзи (необязательно, т.к. по умолчанию используется twemoji)")
         open("config.txt", 'w').write(json.dumps(data))
         quit(0)
 
