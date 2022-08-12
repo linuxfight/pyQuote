@@ -147,7 +147,7 @@ def GetReaction(userId, quote):
 
 async def CreateQuote(message : types.Message):
     requestObject = {
-        'bot_token': GetToken(),
+        'bot_token': Config('token'),
         'emoji_library': emoji_library,
         'background_color': background_color,
         'messages': [ConvertMessage(message, False)]
