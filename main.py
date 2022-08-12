@@ -4,9 +4,6 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InlineQuer
 import requests, uuid, json
 from aiogram.types.message import ContentTypes
 
-def GetToken():
-    return str(open("token.txt").read()).strip()
-
 def Config(key):
     if exists("config.txt"):
         data = json.loads(open("config.txt", 'r').read())
