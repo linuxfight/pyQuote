@@ -149,8 +149,8 @@ async def CreateQuote(message : types.Message):
     quote['fileId'] = sent_message.sticker.file_id
     Save(storage)
 
-@dp.message_handler(content_types=ContentType.TEXT | ContentType.PHOTO | ContentType.STICKER)
-async def GenerateQuote(message):
+@dp.message_handler(content_types=ContentType.TEXT and ContentType.PHOTO and ContentType.STICKER)
+async def GenerateQuote(message: types.message):
     await CreateQuote(message)
 
 def GetQuote(quoteId):
