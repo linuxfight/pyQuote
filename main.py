@@ -43,8 +43,9 @@ emoji_library = Config('emoji_library')
 background_color = Config('background_color')
 
 def ConvertMessage(message : types.Message, value: bool):
-    if not message.sticker and value is False:
-        message.text = GetText(message, value)
+    if value is False:
+        if not message.sticker and message.caption:
+            message.text = GetText(message, value)
     result = {
         'from': {
             'id': message.from_user.id,
@@ -73,7 +74,7 @@ def GetMedia(message: types.Message):
     media = None
     if message.photo:
         media = {
-            'file_id': message.photo[0].file_id,
+            'file_id': message.photo[-1].file_id,
             'type': "photo"
         }
     if message.sticker:
