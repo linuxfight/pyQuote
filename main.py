@@ -1,7 +1,7 @@
 from os.path import exists
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InlineQueryResultCachedSticker
-import requests, uuid, json
+import httpx, uuid, json, asyncio
 from aiogram.types.message import ContentTypes
 
 def Config(key):
@@ -12,7 +12,8 @@ def Config(key):
         data = {
             'emoji_library': 'twemoji',
             'background_color': '#1b1429',
-            'token': 'TOKEN'
+            'token': 'TOKEN',
+            'url': "https://quotes.vanutp.dev/generate"
         }
         open("config.txt", 'w').write(json.dumps(data))
         quit(0)
@@ -41,6 +42,7 @@ dp = Dispatcher(bot)
 storage = Load()
 emoji_library = Config('emoji_library')
 background_color = Config('background_color')
+url = Config('url')
 
 def ConvertMessage(message : types.Message, value: bool):
     if value is False:
@@ -157,10 +159,16 @@ async def CreateQuote(message : types.Message):
         'likes': [],
         'dislikes': []
     }
-    response = requests.post(url="https://quotes.vanutp.dev/generate", json=requestObject)
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url=url, json=requestObject)
+        if response.status_code == 429:
+            await asyncio.sleep(int(response.headers['retry-after']))
+            response = await client.post(url=url, json=requestObject)
     storage['nextQuoteId'] += 1
     storage['Quotes'].append(quote)
-    sent_message = await bot.send_sticker(chat_id=message.chat.id, sticker=response.content, reply_to_message_id=message.message_id, reply_markup=GenerateKeyboard(quote))
+    sent_message = await bot.send_sticker(chat_id=message.chat.id, sticker=response.content,
+                                          reply_to_message_id=message.message_id,
+                                          reply_markup=GenerateKeyboard(quote))
     quote['fileId'] = sent_message.sticker.file_id
     Save(storage)
 
