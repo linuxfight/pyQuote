@@ -161,7 +161,7 @@ async def CreateQuote(message : types.Message):
     }
     async with httpx.AsyncClient() as client:
         response = await client.post(url=url, json=requestObject)
-        if response.status_code == 429:
+        while response.status_code == 429:
             await asyncio.sleep(int(response.headers['retry-after']))
             response = await client.post(url=url, json=requestObject)
     storage['nextQuoteId'] += 1
