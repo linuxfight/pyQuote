@@ -60,12 +60,24 @@ def ConvertMessage(message : types.Message, value: bool):
         'media': GetMedia(message)
     }
     if message.is_forward():
-        result['from'] = {
+        if message.forward_from_chat:
+            result['from'] = {
+                'id': message.forward_from_chat.id,
+                'name': message.forward_from_chat.title
+            }
+            if message.forward_from_chat.username:
+                result['from'] = {
+                    'id': message.forward_from_chat.id,
+                    'name': message.forward_from_chat.title,
+                    'username': message.forward_from_chat.username
+                }
+        else:
+            result['from'] = {
                 'id': message.forward_from.id,
                 'first_name': message.forward_from.first_name,
                 'last_name': message.forward_from.last_name,
                 'username': message.forward_from.username
-        }
+            }
     if message.reply_to_message:
         reply = message.reply_to_message
         reply.text = GetText(message.reply_to_message, True)
