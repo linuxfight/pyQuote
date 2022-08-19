@@ -63,14 +63,9 @@ def ConvertMessage(message : types.Message, value: bool):
         if message.forward_from_chat:
             result['from'] = {
                 'id': message.forward_from_chat.id,
-                'name': message.forward_from_chat.title
+                'name': message.forward_from_chat.title,
+                'username': message.forward_from_chat.username
             }
-            if message.forward_from_chat.username:
-                result['from'] = {
-                    'id': message.forward_from_chat.id,
-                    'name': message.forward_from_chat.title,
-                    'username': message.forward_from_chat.username
-                }
         else:
             result['from'] = {
                 'id': message.forward_from.id,
