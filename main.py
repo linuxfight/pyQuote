@@ -1,4 +1,6 @@
 from os.path import exists
+
+import aiogram.types
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InlineQueryResultCachedSticker
 import httpx, uuid, json, asyncio
@@ -65,6 +67,12 @@ def ConvertMessage(message : types.Message, value: bool):
                 'id': message.forward_from_chat.id,
                 'name': message.forward_from_chat.title,
                 'username': message.forward_from_chat.username
+            }
+        elif message.forward_sender_name:
+            result['from'] = {
+                'id': message.forward_sender_name.__hash__(),
+                'name': message.forward_sender_name,
+                'username': "HiddenSender"
             }
         else:
             result['from'] = {
