@@ -1,12 +1,15 @@
+import os
 from os.path import exists
 
-import aiogram.types
-from aiogram import Bot, Dispatcher, executor, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InlineQueryResultCachedSticker
-import httpx, uuid, json, asyncio
-from aiogram.types.message import ContentTypes
+import asyncio
+import httpx
+import json
+import uuid
+from pyrogram import Client, filters
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InlineQueryResultCachedSticker, InlineQuery, CallbackQuery, Message
 
-def Config(key):
+
+def config(key):
     if exists("config.txt"):
         data = json.loads(open("config.txt", 'r').read())
         return str(data[key])
@@ -14,42 +17,58 @@ def Config(key):
         data = {
             'emoji_library': 'twemoji',
             'background_color': '#1b1429',
-            'token': 'TOKEN',
+            'bot_token': 'BOT_TOKEN',
+            'api_hash': 'API_HASH',
+            'api_id': 'API_ID',
             'url': "https://quotes.vanutp.dev/generate"
         }
         open("config.txt", 'w').write(json.dumps(data))
         quit(0)
 
-def Load():
-        if exists("save.json"):
-            data = open("save.json", 'r').read()
-            return json.loads(data)
-        else:
-            data = {
-                'Quotes': [],
-                'nextQuoteId': 0
-            }
-            open("save.json", 'w').write(json.dumps(data))
-            return Load()
 
-def Save(self):
+def load():
+    if exists("save.json"):
+        data = open("save.json", 'r').read()
+        return json.loads(data)
+    else:
+        data = {
+            'Quotes': [],
+            'nextQuoteId': 0
+        }
+        open("save.json", 'w').write(json.dumps(data))
+        return load()
+
+
+def save(self):
     data = {
         'Quotes': self['Quotes'],
         'nextQuoteId': self['nextQuoteId']
     }
     open("save.json", 'w').write(json.dumps(data))
 
-bot = Bot(token=Config('token'))
-dp = Dispatcher(bot)
-storage = Load()
-emoji_library = Config('emoji_library')
-background_color = Config('background_color')
-url = Config('url')
 
-def ConvertMessage(message : types.Message, value: bool):
+def login():
+    if exists("pyQuote_bot.session"):
+        return Client("pyQuote_bot")
+    return Client(
+        "pyQuote_bot",
+        api_id=config('api_id'),
+        api_hash=config('api_hash'),
+        bot_token=config('bot_token')
+    )
+
+
+app = login()
+storage = load()
+emoji_library = config('emoji_library')
+background_color = config('background_color')
+url = config('url')
+
+
+def convert_message(message: Message, value: bool):
     if value is False:
         if not message.sticker and message.caption:
-            message.text = GetText(message, value)
+            message.text = get_text(message, value)
     result = {
         'from': {
             'id': message.from_user.id,
@@ -59,9 +78,9 @@ def ConvertMessage(message : types.Message, value: bool):
         },
         'text': message.text,
         'reply_to_message': None,
-        'media': GetMedia(message)
+        'media': get_media(message)
     }
-    if message.is_forward():
+    if message.forward_from or message.forward_sender_name or message.forward_from_chat:
         if message.forward_from_chat:
             result['from'] = {
                 'id': message.forward_from_chat.id,
@@ -83,15 +102,16 @@ def ConvertMessage(message : types.Message, value: bool):
             }
     if message.reply_to_message:
         reply = message.reply_to_message
-        reply.text = GetText(message.reply_to_message, True)
-        result['reply_to_message'] = ConvertMessage(reply, True)
+        reply.text = get_text(message.reply_to_message, True)
+        result['reply_to_message'] = convert_message(reply, True)
     return result
 
-def GetMedia(message: types.Message):
+
+def get_media(message: Message):
     media = None
     if message.photo:
         media = {
-            'file_id': message.photo[-1].file_id,
+            'file_id': message.photo.file_id,
             'type': "photo"
         }
     if message.sticker:
@@ -101,12 +121,13 @@ def GetMedia(message: types.Message):
         }
     return media
 
-def GetText(message: types.Message, isReply: bool):
+
+def get_text(message: Message, is_reply: bool):
     msg = message.text
 
     if message.photo:
         if message.caption:
-            if isReply:
+            if is_reply:
                 msg = "🖼️ " + message.caption
             else:
                 msg = message.caption
@@ -115,7 +136,7 @@ def GetText(message: types.Message, isReply: bool):
 
     if message.sticker:
         if message.sticker.emoji:
-            if isReply:
+            if is_reply:
                 msg = "Стикер " + message.sticker.emoji
             else:
                 msg = message.sticker.emoji
@@ -124,142 +145,194 @@ def GetText(message: types.Message, isReply: bool):
 
     return msg
 
-def GenerateKeyboard(quote):
-        buttons = InlineKeyboardMarkup(row_width=2)
-        buttons.insert(InlineKeyboardButton(text="👍" + str(len(quote['likes'])), callback_data=str(quote['Id']) + ":like"))
-        buttons.insert(InlineKeyboardButton(text="👎" + str(len(quote['dislikes'])), callback_data=str(quote['Id']) + ":dislike"))
 
-        return buttons
+def generate_keyboard(quote):
+    buttons = [[
+        InlineKeyboardButton(
+            text="👍" + str(len(quote['likes'])),
+            callback_data=str(quote['Id']) + ":like"
+        ),
+        InlineKeyboardButton(
+            text="👎" + str(len(quote['dislikes'])),
+            callback_data=str(quote['Id']) + ":dislike"
+        )]]
+    return InlineKeyboardMarkup(
+        buttons
+    )
 
-def SetLike(userId, quote):
-    if userId in quote['dislikes']:
-        quote['dislikes'].remove(userId)
 
-    if userId not in quote['likes']:
-        quote['likes'].append(userId)
+def set_like(user_id, quote):
+    if user_id in quote['dislikes']:
+        quote['dislikes'].remove(user_id)
 
-def SetDislike(userId, quote):
-    if userId in quote['likes']:
-        quote['likes'].remove(userId)
+    if user_id not in quote['likes']:
+        quote['likes'].append(user_id)
 
-    if userId not in quote['dislikes']:
-        quote['dislikes'].append(userId)
 
-def RemoveReactions(userId, quote):
-    if userId in quote['likes']:
-        quote['likes'].remove(userId)
+def set_dislike(user_id, quote):
+    if user_id in quote['likes']:
+        quote['likes'].remove(user_id)
 
-    if userId in quote['dislikes']:
-        quote['dislikes'].remove(userId)
+    if user_id not in quote['dislikes']:
+        quote['dislikes'].append(user_id)
 
-def GetReaction(userId, quote):
-    if userId in quote['likes']:
+
+def remove_reactions(user_id, quote):
+    if user_id in quote['likes']:
+        quote['likes'].remove(user_id)
+
+    if user_id in quote['dislikes']:
+        quote['dislikes'].remove(user_id)
+
+
+def get_reaction(user_id, quote):
+    if user_id in quote['likes']:
         return "like"
-    elif userId in quote['dislikes']:
+    elif user_id in quote['dislikes']:
         return "dislike"
     else:
         return "none"
 
-async def CreateQuote(message : types.Message):
-    requestObject = {
-        'bot_token': Config('token'),
+
+def get_args(text: str):
+    args = {
+        'color': config('color'),
+        'messages': 1,
+        'reply': False,
+        'png': False,
+        'img': False,
+        'rate': False
+    }
+    data = text.split()
+    for argument in data:
+        if argument.isnumeric():
+            if 1 <= int(argument) <= 5:
+                args['messages'] = argument
+        if argument == "reply":
+            args['reply'] = True
+        if argument == "img":
+            args['img'] = True
+        if argument == "png":
+            args['img'] = False
+            args['png'] = True
+        if argument == "rate":
+            args['rate'] = True
+    return args
+
+
+async def create_quote(message: Message):
+    request_object = {
+        'bot_token': config('bot_token'),
         'emoji_library': emoji_library,
         'background_color': background_color,
-        'messages': [ConvertMessage(message, False)]
+        'messages': [convert_message(message.reply_to_message, False)]
     }
     quote = {
         'Id': storage['nextQuoteId'],
-        'text': GetText(message, False),
+        'text': get_text(message.reply_to_message, False),
         'fileId': "",
         'likes': [],
         'dislikes': []
     }
     async with httpx.AsyncClient() as client:
-        response = await client.post(url=url, json=requestObject)
+        response = await client.post(url=url, json=request_object)
         while response.status_code == 429:
             await asyncio.sleep(int(response.headers['retry-after']))
-            response = await client.post(url=url, json=requestObject)
+            response = await client.post(url=url, json=request_object)
     storage['nextQuoteId'] += 1
     storage['Quotes'].append(quote)
-    sent_message = await bot.send_sticker(chat_id=message.chat.id, sticker=response.content,
-                                          reply_to_message_id=message.message_id,
-                                          reply_markup=GenerateKeyboard(quote))
+    with open("quote.webp", 'wb') as quote_file:
+        quote_file.write(response.content)
+    os.remove("quote.webp")
+    sent_message = await app.send_sticker(
+        chat_id=message.chat.id,
+        sticker="quote.webp",
+        reply_to_message_id=message.id,
+        reply_markup=generate_keyboard(quote)
+    )
     quote['fileId'] = sent_message.sticker.file_id
-    Save(storage)
+    save(storage)
 
-@dp.message_handler(content_types=ContentTypes.TEXT | ContentTypes.PHOTO | ContentTypes.STICKER)
-async def GenerateQuote(message: types.message):
-    await CreateQuote(message)
 
-def GetQuote(quoteId):
+@app.on_message(filters.command(["q"]))
+async def message_handler(client, message: Message):
+    await create_quote(message=message)
+
+
+def get_quote(quote_id):
     for quoteFor in storage['Quotes']:
-        if str(quoteFor['Id']) == quoteId:
+        if str(quoteFor['Id']) == quote_id:
             return quoteFor
 
-@dp.callback_query_handler()
-async def OnButtonClick(callbackQuery: types.CallbackQuery):
-    data = callbackQuery.data.split(':')
-    userId = callbackQuery.from_user.id
-    quoteId = data[0]
-    reaction = data[1]
-    quote = GetQuote(quoteId)
 
-    if reaction == GetReaction(userId, quote):
-        RemoveReactions(userId, quote)
-        await bot.answer_callback_query(
-            callback_query_id=callbackQuery.id,
+@app.on_callback_query()
+async def on_button_click(client, callback_query: CallbackQuery):
+    data = callback_query.data.split(':')
+    user_id = callback_query.from_user.id
+    quote_id = data[0]
+    reaction = data[1]
+    quote = get_quote(quote_id)
+
+    if reaction == get_reaction(user_id, quote):
+        remove_reactions(user_id, quote)
+        await app.answer_callback_query(
+            callback_query_id=callback_query.id,
             text="Вы убрали реакцию"
         )
     elif reaction == "like":
-        SetLike(userId, quote)
-        await bot.answer_callback_query(
-            callback_query_id=callbackQuery.id,
+        set_like(user_id, quote)
+        await app.answer_callback_query(
+            callback_query_id=callback_query.id,
             text="Вы поставили лайк"
         )
     elif reaction == "dislike":
-        SetDislike(userId, quote)
-        await bot.answer_callback_query(
-            callback_query_id=callbackQuery.id,
+        set_dislike(user_id, quote)
+        await app.answer_callback_query(
+            callback_query_id=callback_query.id,
             text="Вы поставили дизлайк"
         )
 
-    if callbackQuery.message:
-        await bot.edit_message_reply_markup(
-            chat_id=callbackQuery.message.chat.id,
-            message_id=callbackQuery.message.message_id,
-            reply_markup=GenerateKeyboard(quote)
+    if callback_query.message:
+        await app.edit_message_reply_markup(
+            chat_id=callback_query.message.chat.id,
+            message_id=callback_query.message.id,
+            reply_markup=generate_keyboard(quote)
         )
     else:
-        await bot.edit_message_reply_markup(
-            inline_message_id=callbackQuery.inline_message_id,
-            reply_markup=GenerateKeyboard(quote)
+        await callback_query.edit_message_reply_markup(
+            reply_markup=generate_keyboard(quote)
         )
 
-    Save(storage)
+    save(storage)
 
-@dp.inline_handler()
-async def OnInlineQuery(inlineQuery: types.InlineQuery):
+
+@app.on_inline_query()
+async def on_inline_query(client, inline_query: InlineQuery):
     quotes = []
-    userId = inlineQuery.from_user.id
+    user_id = inline_query.from_user.id
     for quote in storage['Quotes']:
-        if ((userId in quote['likes'] or userId in quote['dislikes']) and inlineQuery.query != None and quote['text'] != None and inlineQuery.query.lower() in quote['text'].lower()):
+        if (user_id in quote['likes'] or user_id in quote['dislikes']) and inline_query.query is not None and\
+                quote['text'] is not None and inline_query.query.lower() in quote['text'].lower():
             quotes.append(quote)
 
     answers = []
 
     for quote in quotes:
-        randomId = str(uuid.uuid4())
-        answers.append(InlineQueryResultCachedSticker(id=randomId, sticker_file_id=quote['fileId'], reply_markup=GenerateKeyboard(quote)))
+        random_id = str(uuid.uuid4())
+        answers.append(InlineQueryResultCachedSticker(id=random_id, sticker_file_id=quote['fileId'],
+                                                      reply_markup=generate_keyboard(quote)))
 
-    await bot.answer_inline_query(
-        inline_query_id=inlineQuery.id,
+    await app.answer_inline_query(
+        inline_query_id=inline_query.id,
         results=answers,
         cache_time=0
     )
 
+
 if __name__ == '__main__':
     try:
         print("Bot is running")
-        executor.start_polling(dp)
+        app.run()
     except KeyboardInterrupt:
+        app.stop()
         pass
