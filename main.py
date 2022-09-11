@@ -243,13 +243,13 @@ async def create_quote(message: Message):
     storage['Quotes'].append(quote)
     with open("quote.webp", 'wb') as quote_file:
         quote_file.write(response.content)
-    os.remove("quote.webp")
     sent_message = await app.send_sticker(
         chat_id=message.chat.id,
         sticker="quote.webp",
         reply_to_message_id=message.id,
         reply_markup=generate_keyboard(quote)
     )
+    os.remove("quote.webp")
     quote['fileId'] = sent_message.sticker.file_id
     save(storage)
 
