@@ -80,6 +80,12 @@ def convert_message(message: Message, value: bool):
         'reply_to_message': None,
         'media': get_media(message)
     }
+    if message.sender_chat:
+        result['from'] = {
+            'id': message.sender_chat.id,
+            'name': message.sender_chat.title,
+            'username': message.sender_chat.username
+        }
     if message.forward_from or message.forward_sender_name or message.forward_from_chat:
         if message.forward_from_chat:
             result['from'] = {
