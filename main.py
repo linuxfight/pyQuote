@@ -70,16 +70,18 @@ def convert_message(message: Message, value: bool):
         if not message.sticker and message.caption:
             message.text = get_text(message, value)
     result = {
-        'from': {
-            'id': message.from_user.id,
-            'first_name': message.from_user.first_name,
-            'last_name': message.from_user.last_name,
-            'username': message.from_user.username
-        },
+        'from': None,
         'text': message.text,
         'reply_to_message': None,
         'media': get_media(message)
     }
+    if message.from_user:
+        result['from'] = {
+            'id': message.from_user.id,
+            'first_name': message.from_user.first_name,
+            'last_name': message.from_user.last_name,
+            'username': message.sender_chat.username
+        }
     if message.sender_chat:
         result['from'] = {
             'id': message.sender_chat.id,
