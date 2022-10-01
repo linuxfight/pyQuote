@@ -117,6 +117,19 @@ def get_from(message: Message):
             'name': message.forward_from_chat.title,
             'username': message.forward_from_chat.username
         }
+    if message.from_user:
+        result['from'] = {
+            'id': message.from_user.id,
+            'first_name': message.from_user.first_name,
+            'last_name': message.from_user.last_name,
+            'username': message.sender_chat.username
+        }
+    if message.sender_chat:
+        result['from'] = {
+            'id': message.sender_chat.id,
+            'name': message.sender_chat.title,
+            'username': message.sender_chat.username
+        }
     if message.forward_from or message.forward_sender_name or message.forward_from_chat:
         if message.forward_from_chat:
             result = {
