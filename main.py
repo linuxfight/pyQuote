@@ -13,8 +13,8 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InlineQue
 
 
 def config(key):
-    if exists("config.txt"):
-        data = json.loads(open("config.txt", 'r').read())
+    if exists("config.json"):
+        data = json.loads(open("config.json", 'r').read())
         return str(data[key])
     else:
         data = {
@@ -25,7 +25,7 @@ def config(key):
             'api_id': 'API_ID',
             'url': "https://quotes.vanutp.dev/generate"
         }
-        open("config.txt", 'w').write(json.dumps(data))
+        open("config.json", 'w').write(json.dumps(data))
         quit(0)
 
 
@@ -48,6 +48,8 @@ def save(self):
         'nextQuoteId': self['nextQuoteId']
     }
     open("save.json", 'w').write(json.dumps(data))
+    quote_id = data['nextQuoteId'] - 1
+    os.remove(f'quote{quote_id}.webp')
 
 
 def login():
@@ -322,7 +324,6 @@ async def create_quote(message: Message, args):
     storage['nextQuoteId'] += 1
     storage['Quotes'].append(quote)
     save(storage)
-    os.remove(f'quote{quote_id}.webp')
 
 
 @app.on_message(filters.command(["q"]))
