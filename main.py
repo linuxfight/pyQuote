@@ -3,6 +3,7 @@ from os.path import exists
 
 import asyncio
 import httpx
+import aiofiles
 import json
 import uuid
 
@@ -307,20 +308,21 @@ async def create_quote(message: Message, args):
         'likes': [],
         'dislikes': []
     }
+    quote_id = storage['nextQuoteId']
     response = await send_request(data=request_object, method="POST")
+    async with aiofiles.open(f'quote{quote_id}.webp', 'wb') as quote_file:
+        await quote_file.write(response.content)
+        sent_message = await app.send_sticker(
+            chat_id=message.chat.id,
+            sticker=f'quote{quote_id}.webp',
+            reply_to_message_id=message.id,
+            reply_markup=generate_keyboard(quote)
+        )
+    quote['fileId'] = sent_message.sticker.file_id
     storage['nextQuoteId'] += 1
     storage['Quotes'].append(quote)
-    with open("quote.webp", 'wb') as quote_file:
-        quote_file.write(response.content)
-    sent_message = await app.send_sticker(
-        chat_id=message.chat.id,
-        sticker="quote.webp",
-        reply_to_message_id=message.id,
-        reply_markup=generate_keyboard(quote)
-    )
-    os.remove("quote.webp")
-    quote['fileId'] = sent_message.sticker.file_id
     save(storage)
+    os.remove(f'quote{quote_id}.webp')
 
 
 @app.on_message(filters.command(["q"]))
