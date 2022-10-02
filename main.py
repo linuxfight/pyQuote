@@ -77,7 +77,7 @@ def convert_entities(entities):
             "type": entity_name
         }
         if entity_name == "custom_emoji":
-            converted_entity["custom_emoji_id"] = entity.custom_emoji_id
+            converted_entity["custom_emoji_id"] = str(entity.custom_emoji_id)
         result.append(converted_entity)
     return result
 
@@ -116,19 +116,6 @@ def get_from(message: Message):
             'id': message.forward_from_chat.id,
             'name': message.forward_from_chat.title,
             'username': message.forward_from_chat.username
-        }
-    if message.from_user:
-        result['from'] = {
-            'id': message.from_user.id,
-            'first_name': message.from_user.first_name,
-            'last_name': message.from_user.last_name,
-            'username': message.sender_chat.username
-        }
-    if message.sender_chat:
-        result['from'] = {
-            'id': message.sender_chat.id,
-            'name': message.sender_chat.title,
-            'username': message.sender_chat.username
         }
     if message.forward_from or message.forward_sender_name or message.forward_from_chat:
         if message.forward_from_chat:
