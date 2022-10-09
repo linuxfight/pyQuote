@@ -8,7 +8,7 @@ import json
 import uuid
 
 
-from pyrogram import Client, filters
+from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InlineQueryResultCachedSticker, InlineQuery, CallbackQuery, Message
 
 
@@ -42,12 +42,13 @@ def load():
         return load()
 
 
-def save(self):
+async def save(self):
     data = {
         'Quotes': self['Quotes'],
         'nextQuoteId': self['nextQuoteId']
     }
-    open("save.json", 'w').write(json.dumps(data))
+    async with aiofiles.open("save.json", 'w') as file:
+        await file.write(json.dumps(data))
     quote_id = data['nextQuoteId'] - 1
     os.remove(f'quote{quote_id}.webp')
 
@@ -314,6 +315,10 @@ async def create_quote(message: Message, args):
     response = await send_request(data=request_object, method="POST")
     async with aiofiles.open(f'quote{quote_id}.webp', 'wb') as quote_file:
         await quote_file.write(response.content)
+        await app.send_chat_action(
+            chat_id=message.chat.id,
+            action=enums.ChatAction.CHOOSE_STICKER
+        )
         sent_message = await app.send_sticker(
             chat_id=message.chat.id,
             sticker=f'quote{quote_id}.webp',
@@ -323,7 +328,7 @@ async def create_quote(message: Message, args):
     quote['fileId'] = sent_message.sticker.file_id
     storage['nextQuoteId'] += 1
     storage['Quotes'].append(quote)
-    save(storage)
+    await save(storage)
 
 
 @app.on_message(filters.command(["q"]))
@@ -375,7 +380,7 @@ async def on_button_click(client, callback_query: CallbackQuery):
             reply_markup=generate_keyboard(quote)
         )
 
-    save(storage)
+    await save(storage)
 
 
 @app.on_inline_query()
