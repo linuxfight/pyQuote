@@ -1,13 +1,13 @@
-import os
-from os.path import exists
-
 import asyncio
 import httpx
 import aiofiles
 import json
 import uuid
+import tempfile
 
 
+from os.path import exists
+from pathlib import Path
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InlineQueryResultCachedSticker, InlineQuery, CallbackQuery, Message
 
@@ -50,7 +50,6 @@ async def save(self):
     async with aiofiles.open("save.json", 'w') as file:
         await file.write(json.dumps(data))
     quote_id = data['nextQuoteId'] - 1
-    os.remove(f'quote{quote_id}.webp')
 
 
 def login():
@@ -313,18 +312,23 @@ async def create_quote(message: Message, args):
     }
     quote_id = storage['nextQuoteId']
     response = await send_request(data=request_object, method="POST")
-    async with aiofiles.open(f'quote{quote_id}.webp', 'wb') as quote_file:
-        await quote_file.write(response.content)
-        await app.send_chat_action(
-            chat_id=message.chat.id,
-            action=enums.ChatAction.CHOOSE_STICKER
-        )
-        sent_message = await app.send_sticker(
-            chat_id=message.chat.id,
-            sticker=f'quote{quote_id}.webp',
-            reply_to_message_id=message.id,
-            reply_markup=generate_keyboard(quote)
-        )
+    with tempfile.TemporaryDirectory() as tmp:
+        filename = Path(tmp) / 'quote.webp'
+
+        async with aiofiles.open(filename, 'wb') as quote_file:
+            await quote_file.write(response.content)
+
+            await app.send_chat_action(
+                chat_id=message.chat.id,
+                action=enums.ChatAction.CHOOSE_STICKER
+            )
+
+            sent_message = await app.send_sticker(
+                chat_id=message.chat.id,
+                sticker=str(filename),
+                reply_to_message_id=message.id,
+                reply_markup=generate_keyboard(quote)
+            )
     quote['fileId'] = sent_message.sticker.file_id
     storage['nextQuoteId'] += 1
     storage['Quotes'].append(quote)
