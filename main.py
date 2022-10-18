@@ -160,9 +160,16 @@ async def on_callback_query(client, callback_query: CallbackQuery):
     data = callback_query.data.split(':')
     video_id = data[0]
     download_type = data[1]
+    with yt_dlp.YoutubeDL() as ydl:
+        info: dict = ydl.extract_info(
+            download=False,
+            url=f'https://youtu.be/{video_id}'
+        )
     filename = video_id + '.mkv'
+    telegram_filename = info['title'] + '.mkv'
     if download_type == 'audio':
         filename = video_id + '.mp3'
+        telegram_filename = info['title'] + '.mp3'
 
     if f'{video_id}_{download_type}' in storage:
         if storage[f'{video_id}_{download_type}'] != None:
@@ -177,7 +184,7 @@ async def on_callback_query(client, callback_query: CallbackQuery):
                         chat_id=callback_query.message.chat.id,
                         reply_to_message_id=callback_query.message.id,
                         document=file,
-                        file_name=filename
+                        file_name=telegram_filename
                     )
                 else:
                     await app.send_chat_action(
@@ -188,7 +195,7 @@ async def on_callback_query(client, callback_query: CallbackQuery):
                         chat_id=callback_query.message.chat.id,
                         reply_to_message_id=callback_query.message.id,
                         audio=file,
-                        file_name=filename
+                        file_name=telegram_filename
                     )
                 return
 
@@ -222,7 +229,7 @@ async def on_callback_query(client, callback_query: CallbackQuery):
             chat_id=callback_query.message.chat.id,
             reply_to_message_id=callback_query.message.id,
             document=file_path,
-            file_name=filename
+            file_name=telegram_filename
         )
     else:
         await app.send_chat_action(
@@ -233,7 +240,7 @@ async def on_callback_query(client, callback_query: CallbackQuery):
             chat_id=callback_query.message.chat.id,
             reply_to_message_id=callback_query.message.id,
             audio=file_path,
-            file_name=filename
+            file_name=telegram_filename
         )
     file_id = None
     if file.document:
